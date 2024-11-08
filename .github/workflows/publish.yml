@@ -45,6 +45,4 @@ jobs:
         path: 'genkit-workshop'
 
     - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v4
-      with:
-        publish_dir: ./genkit-workshop
+      uses: actions/deploy-pages@v4
