@@ -150,7 +150,7 @@ curl -X POST http://localhost:5001/<your-project-id>/<your-region>/myFlow -H "Co
 You should get the following response:
 ```json
 {
-  "data": "hi"
+  "result": "hi"
 }
 ```
 
@@ -245,7 +245,7 @@ curl -X POST http://localhost:5001/<your-project-id>/<your-region>/myFlow -H "Co
 You should get a joke about dogs as the response:
 ```json
 {
-  "data": "Why did the dog sit in the shade? Because he didn't want to be a hot dog!"
+  "result": "Why did the dog sit in the shade? Because he didn't want to be a hot dog!"
 }
 ```
 
@@ -261,6 +261,130 @@ You can find the solution to this module in the `code/module2` folder of this [G
 Duration: 30
 
 ### Prompt Templates using Dotprompt
+
+Dotprompt is a powerful templating language that allows you to create dynamic prompts for your generative AI applications. You can use Dotprompt to create prompts that include variables, conditions, loops, and more. It uses handlebars-like syntax to define templates and variables.
+
+It is very powerfuls allowing developers to separate the source code from the prompts, making it easier to manage and update the prompts without changing the source code.
+
+To use Dotprompt in your Genkit flow, you need to install the Dotprompt plugin by running the following command in the `functions` directory of your Firebase project:
+```bash
+npm i @genkit-ai/dotprompt
+```
+
+Once we have the Dotprompt plugin installed, we can import it in the `index.ts` file:
+```typescript
+import { configureGenkit } from "@genkit-ai/core";
+import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
+
+import * as z from "zod";
+import { firebase } from "@genkit-ai/firebase";
+import { gpt4o, openAI } from "genkitx-openai";
+import { generate } from "@genkit-ai/ai";
+import { dotprompt } from "@genkit-ai/dotprompt";
+```
+
+Then, we can initialize the Dotprompt plugin with:
+```typescript
+configureGenkit({
+  plugins: [firebase(), dotprompt(), openAI(
+    {
+      apiKey: process.env.OPENAI_API_KEY!,
+    }
+  )],
+  logLevel: "debug",
+});
+```
+
+Now, It is time to create the `prompts`  folder in the `functions` directory of your Firebase project. This folder will contain the Dotprompt templates for your Genkit flows. You can create a new Dotprompt template by adding a new file with the `.prompt` extension to the `prompts` folder. Let's create a new Dotprompt template called `joke.prompt` with the following content:
+```handlebars
+---
+model: openai/gpt-4o
+input:
+  schema:
+    text: string
+    entities: string
+    user_input: string
+output:
+  format: json
+  schema:
+    text: string
+---
+
+Tell me ajoke about {{text}}
+```
+
+As you see above, the Dotprompt template defines the input and output schema for the prompt template. The prompt template defines the prompt that the Genkit flow uses to generate the response.
+
+Let's modify our flow to use the Dotprompt template by adding the following code to the `index.ts` file:
+```typescript
+export const myFlow = onFlow(
+  {
+    name: "myFlow",
+    inputSchema: z.object({ text: z.string() }),
+    outputSchema: z.string(),
+    authPolicy: noAuth(), // Not requiring authentication, but you can change this. It is highly recommended to require authentication for production use cases.
+  },
+  async (toProcess) => {
+
+    const nluPrompt = promptRef("joke");
+
+    const result = await nluPrompt.generate({
+      input: {
+        text: toProcess.text,
+      },
+    });
+
+    return result.output();
+  },
+);
+```
+
+In the code above, we are using the Genkit flow called `myFlow` that uses the `joke.prompt` Dotprompt template to generate a joke about the input text. We are using the `promptRef` function from Genkit to reference the Dotprompt template and the `generate` function to generate the response passing the input text.
+
+Make sure you update your imports to include the `promptRef` function:
+```typescript
+import { configureGenkit } from "@genkit-ai/core";
+import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
+
+import * as z from "zod";
+import { firebase } from "@genkit-ai/firebase";
+import { openAI } from "genkitx-openai";
+import { dotprompt, promptRef } from "@genkit-ai/dotprompt";
+```
+
+Let's build our project by running the following command in the `functions` directory:
+```sh
+npm run build
+```
+
+Once built, let's run the Firebase emulator suite and the Genkit developer console to test our Genkit flow. We should be able to call the `myFlow` flow with the input `{text: 'dog'}` and get a joke about dogs:
+```bash
+curl -X POST http://localhost:5001/<your-project-id>/<your-region>/myFlow -H "Content-Type: application/json" -d '{"data":{"text":"dog"}}'
+```
+
+You should get a joke about dogs as the response:
+```json
+{
+  "result": {
+    "text": "Why did the dog sit in the shade? Because he didn't want to be a hot dog!"
+  }
+}
+```
+
+You can interact with the Dotprompt templates in the Genkit developer console:
+![Genkit Flow](assets/module3/dotprompt.png)
+
+### Solution
+
+You can find the solution to this module in the `code/module3` folder of this [GitHub repository](https://github.com/xavidop/genkit-workshop)
+
+### What's next?
+
+If you want to learn more about Dotprompt I will highly recommend you to play with:
+1. Conditional statements using handlebars-like syntax
+2. Use structured Input and output using JSON types to create more complex prompts.
+3. Multi-message prompts
+4. Multi-modal prompts
 
 <!-- ------------------------ -->
 ## Module 4: Retrieval-Augmented Generation (RAG) with Genkit
