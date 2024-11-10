@@ -204,7 +204,7 @@ export const myFlow = onFlow(
   },
   async (toProcess) => {
     const prompt =
-    `Tell me ajoke about ${toProcess.text}`;
+    `Tell me a joke about ${toProcess.text}`;
 
     const llmResponse = await generate({
         model:  gpt4o,
@@ -257,7 +257,103 @@ After installing and configuring the OpenAI plugin, you will be able to interact
 You can find the solution to this module in the `code/module2` folder of this [GitHub repository](https://github.com/xavidop/genkit-workshop)
 
 <!-- ------------------------ -->
-## Module 3: Prompt Management in Genkit
+## Module 3: Tool calling
+Duration: 30
+### Implement tool calling using Genkit
+
+In the context of large language models (LLMs), a tool or function generally refers to an external utility or operation that the model can call on to extend its abilities beyond just generating text. These tools or functions allow LLMs to perform specialized actions by interfacing with other software, databases, or APIs. LLMs, especially when paired with Genkit, can be programmed to:
+1. Recognize the need for a tool or function (e.g., if a user asks for today’s temperature, the LLM might use a weather API).
+2. Call the tool or function programmatically (like invoking a calculator API for math or an LLM function to access specific database records).
+3. Integrate the response back into the conversation, enhancing the quality of the answers.
+
+In this page from [Tianyi Li](https://towardsdatascience.com/create-an-agent-with-openai-function-calling-capabilities-ad52122c3d12) you can see how tools work:
+![Genkit Tools](assets/module3/toolexecution.png)
+
+So let's create a new tool that can retrieve information from a website and uses it to generate a response. For this workshop, we will create a tool that retrieves the current temperature in a city using the OpenWeatherMap API.
+
+```typescript
+const getJoke = defineTool(
+  {
+    name: "getJoke",
+    description:
+      "Get a randome joke about a specific topic",
+    inputSchema: z.object({ jokeTopic: z.string() }),
+    outputSchema: z.object({ joke: z.string() }),
+  },
+  async ({ jokeTopic }) => {
+    const response = await fetch(`https://v2.jokeapi.dev/joke/Any?contains=${jokeTopic}`);
+    const joke = await response.json();
+    return {"joke": joke.joke};
+  },
+);
+```
+
+The tool above is a simple example of a tool that retrieves a joke about a specific topic using the JokeAPI. The tool takes a jokeTopic as input and returns a joke as output. The tool uses the fetch function to make an HTTP request to the JokeAPI and returns the joke as a response.
+
+We will not use dotprompt for this example. Let's modify our generate method to use the `getJoke` tool by adding the following code to the `index.ts` file:
+```typescript
+export const myFlow = onFlow(
+  {
+    name: "myFlow",
+    inputSchema: z.object({ text: z.string() }),
+    outputSchema: z.string(),
+    authPolicy: noAuth(), // Not requiring authentication, but you can change this. It is highly recommended to require authentication for production use cases.
+  },
+  async (toProcess) => {
+
+    const prompt =
+    `Tell me a joke about ${toProcess.text}`;
+
+    const result = await generate({
+      model:  gpt4o,
+      prompt,
+      tools: [getJoke]
+    });
+
+    return result.text();
+  },
+);
+```
+
+The code above is using the `generate` function from Genkit to generate a joke about the input text using the GPT-4o model. The `generate` function takes the model, prompt, and tools as input and returns the generated text. In this case, we are passing the `getJoke` tool to the `generate` function to retrieve a joke about the input text.
+
+Make sure you update your imports to include the `defineTool` function:
+```typescript
+import { configureGenkit } from "@genkit-ai/core";
+import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
+
+import * as z from "zod";
+import { firebase } from "@genkit-ai/firebase";
+import { gpt4o, openAI } from "genkitx-openai";
+import { dotprompt } from "@genkit-ai/dotprompt";
+import { defineTool, generate } from "@genkit-ai/ai";
+```
+
+Let's build our project by running the following command in the `functions` directory:
+```sh
+npm run build
+```
+
+Once built, let's run the Firebase emulator suite and the Genkit developer console to test our Genkit flow. We should be able to call the `myFlow` flow with the input `{text: 'dog'}` and get a joke about dogs:
+```bash
+curl -X POST http://localhost:5001/<your-project-id>/<your-region>/myFlow -H "Content-Type: application/json" -d '{"data":{"text":"dog"}}'
+```
+
+You should get a joke about dogs as the response:
+```json
+{
+  "result": "Here's a joke for you:\n\n\"My girlfriend's dog died, so I tried to cheer her up by getting her an identical one. It just made her more upset. She screamed at me, 'What am I supposed to do with two dead dogs?'\""
+}
+```
+
+One important thing from the output above is that the joke is generated by the `getJoke` tool and not by the GPT-4o model. This shows that the tool is being called correctly and integrated into the conversation.
+
+You can interact with the tools in the Genkit developer console:
+![Genkit Flow](assets/module3/tools.png)
+
+
+<!-- ------------------------ -->
+## Module 4: Prompt Management in Genkit
 Duration: 30
 
 ### Prompt Templates using Dotprompt
@@ -310,7 +406,7 @@ output:
     text: string
 ---
 
-Tell me ajoke about {{text}}
+Tell me a joke about {{text}}
 ```
 
 As you see above, the Dotprompt template defines the input and output schema for the prompt template. The prompt template defines the prompt that the Genkit flow uses to generate the response.
@@ -372,11 +468,11 @@ You should get a joke about dogs as the response:
 ```
 
 You can interact with the Dotprompt templates in the Genkit developer console:
-![Genkit Flow](assets/module3/dotprompt.png)
+![Genkit Flow](assets/module4/dotprompt.png)
 
 ### Solution
 
-You can find the solution to this module in the `code/module3` folder of this [GitHub repository](https://github.com/xavidop/genkit-workshop)
+You can find the solution to this module in the `code/module4` folder of this [GitHub repository](https://github.com/xavidop/genkit-workshop)
 
 ### What's next?
 
@@ -386,9 +482,10 @@ If you want to learn more about Dotprompt I will highly recommend you to play wi
 3. Multi-message prompts
 4. Multi-modal prompts
 
+
 <!-- ------------------------ -->
-## Module 4: Retrieval-Augmented Generation (RAG) with Genkit
-Duration: 40
+## Module 5: Retrieval-Augmented Generation (RAG) with Genkit
+Duration: 60
 ### Creating an indexer
 
 ### Creating an embedder

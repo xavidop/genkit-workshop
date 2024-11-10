@@ -33,7 +33,7 @@ export const myFlow = onFlow(
   },
   async (toProcess) => {
     const prompt =
-    `Tell me ajoke about ${toProcess.text}`;
+    `Tell me a joke about ${toProcess.text}`;
 
     const llmResponse = await generate({
         model:  gpt4o,

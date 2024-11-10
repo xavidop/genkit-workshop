@@ -12,9 +12,8 @@ import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
 
 import * as z from "zod";
 import { firebase } from "@genkit-ai/firebase";
-import { gpt4o, openAI } from "genkitx-openai";
-import { dotprompt } from "@genkit-ai/dotprompt";
-import { defineTool, generate } from "@genkit-ai/ai";
+import { openAI } from "genkitx-openai";
+import { dotprompt, promptRef } from "@genkit-ai/dotprompt";
 
 configureGenkit({
   plugins: [firebase(), dotprompt(), openAI(
@@ -25,21 +24,6 @@ configureGenkit({
   logLevel: "debug",
 });
 
-const getJoke = defineTool(
-  {
-    name: "getJoke",
-    description:
-      "Get a randome joke about a specific topic",
-    inputSchema: z.object({ jokeTopic: z.string() }),
-    outputSchema: z.object({ joke: z.string() }),
-  },
-  async ({ jokeTopic }) => {
-    const response = await fetch(`https://v2.jokeapi.dev/joke/Any?contains=${jokeTopic}`);
-    const joke = await response.json();
-    return {"joke": joke.joke};
-  },
-);
-
 export const myFlow = onFlow(
   {
     name: "myFlow",
@@ -49,15 +33,14 @@ export const myFlow = onFlow(
   },
   async (toProcess) => {
 
-    const prompt =
-    `Tell me a joke about ${toProcess.text}`;
+    const nluPrompt = promptRef("joke");
 
-    const result = await generate({
-      model:  gpt4o,
-      prompt,
-      tools: [getJoke]
+    const result = await nluPrompt.generate({
+      input: {
+        text: toProcess.text,
+      },
     });
 
-    return result.text();
+    return result.output();
   },
 );
