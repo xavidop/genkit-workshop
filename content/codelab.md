@@ -75,7 +75,7 @@ You can now access the Firebase emulator suite at [`http://localhost:4000`](http
 
 To start the Genkit developer console, run the following command in the root directory of your Firebase project:
 ```sh
-genkit start --attach http://localhost:4000 --port 4001
+genkit start --attach http://localhost:3100 --port 4001
 ```
 You can now access the Genkit developer console at [`http://localhost:4001`](http://localhost:4001). You can use the developer console to interact with your generative AI application and test your prompts and flows:
 ![Genkit UI](assets/module1/genkitui.png)
@@ -153,6 +153,9 @@ You should get the following response:
   "data": "hi"
 }
 ```
+
+You should see also the flow in the Genkit developer console:
+![Genkit Flow](assets/module2/flow.png)
 
 ### Connecting to an LLM
 Right now, our Genkit flow is just returning the input text as output. Let's connect our Genkit flow to a large language model (LLM) to generate more interesting responses.
@@ -245,6 +248,9 @@ You should get a joke about dogs as the response:
   "data": "Why did the dog sit in the shade? Because he didn't want to be a hot dog!"
 }
 ```
+
+After installing and configuring the OpenAI plugin, you will be able to interact with the models from the Genkit developer console:
+![Genkit Flow](assets/module2/models.png)
 
 ### Solution
 
