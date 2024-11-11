@@ -916,3 +916,43 @@ If you want to learn more about Dotprompt I will highly recommend you to play wi
 
 <!-- ------------------------ -->
 ## Resources
+Duration: 10
+
+### Xavier Portilla Edo
+
+Hey! This is Xavi! Author of this workshop. I am a software engineer and entrepreneur with a passion for technology and education. You can find me on:
+- [Twitter](https://twitter.com/xavidop)
+- [BlueSky](https://bsky.app/profile/xavidop.bsky.social)
+- [GitHub](https://github.com/xavidop)
+- [LinkedIn](https://www.linkedin.com/in/xavierportillaedo/)
+- [Website](https://xavidop.me)
+- [YouTube](https://www.youtube.com/@xavidop)
+
+### Genkit Resources
+Here are some resources you can follow to get up to date with Genkit:
+- [Firebase](https://x.com/firebase) - Official Twitter account for Firebase.
+- [Genkit Discord server](https://discord.gg/qXt5zzQKpc) - Official Discord server for Genkit.
+- [Genkit GitHub](https://github.com/firebase/genkit) - Official GitHub repository for Genkit.
+- [Genkit Documentation](https://firebase.google.com/docs/genkit) - Official documentation for Genkit.
+- [The Fire Company](https://github.com/TheFireCo) - The Fire Company GitHub organization.
+- [Awesome Genkit List](https://github.com/xavidop/awesome-firebase-genkit) - A curated list of Genkit resources.
+
+<!-- ------------------------ -->
+## Next Steps
+Duration: 10
+
+### Feedback
+Please provide feedback on this workshop by filling creating an issue in the [GitHub repository](https://github.com/xavidop/genkit-workshop)
+
+### Continue Learning
+If you want to continue learning about Genkit, I recommend you to:
+1. Connect to other LLMSs from other vendors like Google AI Studio, Google VErtex AI, Cohere, Groq, Azure, AWS Bedrock
+2. Contect to external vector Databases like Firstore, QDRant, Chroma, Pinecone.
+3. Create more complex flows with multiple tools and models.
+
+### Share
+If you found this workshop useful, please share it with your friends and colleagues. You can also star the [GitHub repository](https://github.com/xavidop/genkit-workshop)
+
+### Enjoy!
+
+Thank you for participating in this workshop! I hope you enjoyed it and learned something new. If you have any questions or feedback, please feel free to reach out to me on [Twitter](https://twitter.com/xavidop). Have a great day! 🚀
