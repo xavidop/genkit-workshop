@@ -378,7 +378,7 @@ The steps that we will need to do are:
 
 ### Parsing documents
 
-Before we proceed, you will need to download this pdf file called `joke-structure-guide.pdf` from [here]()
+Before we proceed, you will need to download this pdf file called `joke-structure-guide.pdf` from [here](https://github.com/xavidop/genkit-workshop/blob/main/content/assets/module4/joke-structure-guide.pdf)
 
 To parse the PDF files and create chunks of text, we will use the `pdf-parse` library and `llm-chunk`. You can install the `pdf-parse` library by running the following command in the `functions` directory of your Firebase project:
 ```bash
