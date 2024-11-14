@@ -7,31 +7,25 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import { configureGenkit } from "@genkit-ai/core";
+import { genkit, run, z } from "genkit";
 import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
-
-import * as z from "zod";
-import { firebase } from "@genkit-ai/firebase";
 import { gpt4o, openAI, textEmbeddingAda002 } from "genkitx-openai";
-import { dotprompt } from "@genkit-ai/dotprompt";
-import { defineTool, generate } from "@genkit-ai/ai";
+import { Document } from 'genkit/retriever';
 
 import {
   devLocalIndexerRef,
   devLocalRetrieverRef,
   devLocalVectorstore,
 } from "@genkit-ai/dev-local-vectorstore";
-import { Document, index, retrieve } from "@genkit-ai/ai/retriever";
 import { chunk } from "llm-chunk";
-import { run } from "@genkit-ai/flow";
 import { readFile } from "fs/promises";
 import pdf from "pdf-parse";
 import * as path from "path";
+import { logger } from 'genkit/logging';
 
-configureGenkit({
+const ai = genkit({
+  model: gpt4o,
   plugins: [
-    firebase(),
-    dotprompt(),
     openAI({
       apiKey: process.env.OPENAI_API_KEY!,
     }),
@@ -42,13 +36,14 @@ configureGenkit({
       },
     ]),
   ],
-  logLevel: "debug",
 });
+logger.setLogLevel('debug');
 
 export const jokeIndexer = devLocalIndexerRef("jokes");
 export const jokeRetriever = devLocalRetrieverRef('jokes');
 
 export const ingester = onFlow(
+  ai,
   {
     name: "ingester",
     inputSchema: z.string(),
@@ -74,11 +69,11 @@ export const ingester = onFlow(
 
     // Convert chunks of text into documents to store in the index.
     const documents = chunks.map((text) => {
-      return Document.fromText(text, { file });
+      return Document.fromText(text, { filepath });
     });
 
     // Add documents to the index.
-    await index({
+    await ai.index({
       indexer: jokeIndexer,
       documents,
     });
@@ -92,7 +87,7 @@ async function extractTextFromPdf(filePath: string) {
   return data.text;
 }
 
-const getJoke = defineTool(
+const getJoke = ai.defineTool(
   {
     name: "getJoke",
     description: "Get a randome joke about a specific topic",
@@ -109,6 +104,7 @@ const getJoke = defineTool(
 );
 
 export const myFlow = onFlow(
+  ai,
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
@@ -118,7 +114,7 @@ export const myFlow = onFlow(
   async (toProcess) => {
     const prompt = `Tell me a joke about ${toProcess.text}. Create a joke structure that follows best practices and explain which ones you used.`;
 
-    const docs = await retrieve({
+    const docs = await ai.retrieve({
       retriever: jokeRetriever,
       query: "Joke structure best practices",
       options: { k: 3 },
@@ -126,13 +122,12 @@ export const myFlow = onFlow(
 
     console.log(JSON.stringify(docs, null, 2));
 
-    const result = await generate({
-      model: gpt4o,
+    const result = await ai.generate({
       prompt,
       tools: [getJoke],
-      context: docs,
+      docs,
     });
 
-    return result.text();
+    return result.text;
   },
 );
