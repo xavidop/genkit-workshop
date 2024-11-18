@@ -40,6 +40,6 @@ export const myFlow = onFlow(
         text: toProcess.text,
     });
 
-    return result.output();
+    return result.text;
   },
 );

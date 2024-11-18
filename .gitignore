@@ -1,3 +1,6 @@
 genkit-workshop
 
 .DS_Store
+
+.genkit
+__db_jokes.json
