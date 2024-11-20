@@ -7,24 +7,25 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import { configureGenkit } from "@genkit-ai/core";
 import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
+import { gpt4o, openAI } from "genkitx-openai";
+import { genkit, z } from "genkit";
+import { logger } from 'genkit/logging';
 
-import * as z from "zod";
-import { firebase } from "@genkit-ai/firebase";
-import { openAI } from "genkitx-openai";
-import { dotprompt, promptRef } from "@genkit-ai/dotprompt";
-
-configureGenkit({
-  plugins: [firebase(), dotprompt(), openAI(
+const ai = genkit({
+  model: gpt4o,
+  promptDir: 'prompts',
+  plugins: [
+    openAI(
     {
       apiKey: process.env.OPENAI_API_KEY!,
     }
   )],
-  logLevel: "debug",
 });
+logger.setLogLevel('debug');
 
 export const myFlow = onFlow(
+  ai,
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
@@ -33,14 +34,12 @@ export const myFlow = onFlow(
   },
   async (toProcess) => {
 
-    const nluPrompt = promptRef("joke");
+    const nluPrompt = ai.prompt("joke");
 
-    const result = await nluPrompt.generate({
-      input: {
+    const result = await nluPrompt({
         text: toProcess.text,
-      },
     });
 
-    return result.output();
+    return result.text;
   },
 );

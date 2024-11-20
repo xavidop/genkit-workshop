@@ -7,24 +7,24 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import { configureGenkit } from "@genkit-ai/core";
 import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
-
-import * as z from "zod";
-import { firebase } from "@genkit-ai/firebase";
 import { gpt4o, openAI } from "genkitx-openai";
-import { generate } from "@genkit-ai/ai";
+import { genkit, z } from "genkit";
+import { logger } from 'genkit/logging';
 
-configureGenkit({
-  plugins: [firebase(), openAI(
+
+const ai = genkit({
+  model: gpt4o,
+  plugins: [openAI(
     {
       apiKey: process.env.OPENAI_API_KEY!,
     }
   )],
-  logLevel: "debug",
 });
+logger.setLogLevel('debug');
 
 export const myFlow = onFlow(
+  ai,
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
@@ -35,14 +35,13 @@ export const myFlow = onFlow(
     const prompt =
     `Tell me a joke about ${toProcess.text}`;
 
-    const llmResponse = await generate({
-        model:  gpt4o,
+    const llmResponse = await ai.generate({
         prompt: prompt,
         config: {
         temperature: 1,
         },
     });
 
-    return llmResponse.text();
+    return llmResponse.text;
   },
 );
