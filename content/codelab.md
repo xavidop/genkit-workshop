@@ -60,25 +60,25 @@ When prompted, select the follwing options:
 
 This will create a new Firebase project with the Genkit library initialized. you can now start building your generative AI application.
 
-### Running the Firebase Simulator
-
-To start the Firebase emulator suite, run the following command in the root directory of your Firebase project:
-```sh
-GENKIT_ENV=dev firebase emulators:start --inspect-functions
-```
-You can now access the Firebase emulator suite at [`http://localhost:4000`](http://localhost:4000). You can use the emulator suite to test your Firebase functions locally before deploying them to the cloud:
-
-![Firebase Simulator](assets/module1/simulator.png)
-
-
 ### Running the Genkit Developer Console
 
 To start the Genkit developer console, run the following command in the root directory of your Firebase project:
 ```sh
-genkit start --attach http://localhost:3100 --port 4001
+npm run genkit:start
 ```
-You can now access the Genkit developer console at [`http://localhost:4001`](http://localhost:4001). You can use the developer console to interact with your generative AI application and test your prompts and flows:
+You can now access the Genkit developer console at [`http://localhost:4000`](http://localhost:4000). You can use the developer console to interact with your generative AI application and test your prompts and flows:
 ![Genkit UI](assets/module1/genkitui.png)
+
+### Running the Firebase Simulator
+
+To start the Firebase emulator suite, run the following command in the root directory of your Firebase project:
+```sh
+firebase emulators:start --inspect-functions
+```
+You can now access the Firebase emulator suite at [`http://localhost:4001`](http://localhost:4001). You can use the emulator suite to test your Firebase functions locally before deploying them to the cloud:
+
+![Firebase Simulator](assets/module1/simulator.png)
+
 
 ### Solution
 
@@ -94,41 +94,39 @@ To create a new Genkit flow, you will to modify the existing code of the `index.
 First, let's add the imports that we will need to create our Genkit flow:
 
 ```typescript
-import {configureGenkit} from "@genkit-ai/core";
-import {onFlow, noAuth} from "@genkit-ai/firebase/functions";
-
-import * as z from "zod";
-import {firebase} from "@genkit-ai/firebase";
+import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
+import { genkit, z } from "genkit";
+import { logger } from 'genkit/logging';
 ```
 
 This project uses the following Node.js Packages:
 1. `@genkit-ai/firebase`: Genkit Firebase SDK to be able to use Genkit in Firebase Functions
-2. `@genkit-ai/core`: Genkit AI Core SDK
-3. `zod`: A TypeScript-first schema declaration and validation library
+2. `genkit`: Genkit AI Core SDK
+3. `z`: A TypeScript-first schema declaration and validation library
+4. `genkit/logging`: Genkit logging library
 
 
 Perfect, let's intilize genkit in our project by adding the following code to the `index.ts` file:
 
 ```typescript
-configureGenkit({
-  plugins: [
-    firebase(),
-  ],
-  logLevel: "debug",
-  enableTracingAndMetrics: true,
+const ai = genkit({
+  model: gpt4o,
+  plugins: [],
 });
+logger.setLogLevel('debug');
 ```
 
-This code initializes Genkit with the Firebase plugin and sets the log level to debug. One fo the cool is that it is based on a plugin architecture, so you can add more plugins to extend the functionality of Genkit.
+This code initializes Genkit and sets the log level to debug. One fo the cool is that it is based on a plugin architecture, so you can add more plugins to extend the functionality of Genkit.
 
 You can now create a new Genkit flow by adding the following code to the `index.ts` file:
 ```typescript
 export const myFlow = onFlow(
+  ai,
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
     outputSchema: z.string(),
-    authPolicy: noAuth(), // Not requiring authentication, but you can change this. It is highly recommended to require authentication for production use cases.
+    authPolicy: noAuth(),
   },
   async (toProcess) => {
     return toProcess.text;
@@ -172,30 +170,29 @@ npm install genkitx-openai
 
 Let's import the OpenAI plugin library:
 ```typescript
-import { configureGenkit } from "@genkit-ai/core";
 import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
-
-import * as z from "zod";
-import { firebase } from "@genkit-ai/firebase";
 import { openAI } from "genkitx-openai";
+import { genkit, z } from "genkit";
+import { logger } from 'genkit/logging';
 ```
 
 Then, let's initialize the OpenAI plugin with:
 ```typescript
-configureGenkit({
-  plugins: [firebase(), openAI(
+const ai = genkit({
+  model: gpt4o,
+  plugins: [openAI(
     {
-      apiKey: <my-key>,
+      apiKey: <my-api-key>,
     }
   )],
-  logLevel: "debug",
-  enableTracingAndMetrics: true,
 });
+logger.setLogLevel('debug');
 ```
 
 Now, we can create a new Genkit flow that connects to the GPT-4o model by adding the following code to the `index.ts` file:
 ```typescript
 export const myFlow = onFlow(
+  ai,
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
@@ -206,15 +203,14 @@ export const myFlow = onFlow(
     const prompt =
     `Tell me a joke about ${toProcess.text}`;
 
-    const llmResponse = await generate({
-        model:  gpt4o,
+    const llmResponse = await ai.generate({
         prompt: prompt,
         config: {
         temperature: 1,
         },
     });
 
-    return llmResponse.text();
+    return llmResponse.text;
   },
 );
 ```
@@ -223,13 +219,10 @@ In the code above, we are creating a re-using the Genkit flow called `myFlow` th
 
 To use the `generate` function and `gpt4o`, we need to import it them:
 ```typescript
-import { configureGenkit } from "@genkit-ai/core";
 import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
-
-import * as z from "zod";
-import { firebase } from "@genkit-ai/firebase";
 import { gpt4o, openAI } from "genkitx-openai";
-import { generate } from "@genkit-ai/ai";
+import { genkit, z } from "genkit";
+import { logger } from 'genkit/logging';
 ```
 
 Let's build our project by running the following command in the `functions` directory:
@@ -256,8 +249,6 @@ After installing and configuring the OpenAI plugin, you will be able to interact
 
 You can find the solution to this module in the `code/module2` folder of this [GitHub repository](https://github.com/xavidop/genkit-workshop)
 
-
-
 <!-- ------------------------ -->
 ## Module 3: Tool calling
 Duration: 30
@@ -274,7 +265,7 @@ In this page from [Tianyi Li](https://towardsdatascience.com/create-an-agent-wit
 So let's create a new tool that can retrieve information from a website and uses it to generate a response. For this workshop, we will create a tool that retrieves the current temperature in a city using the OpenWeatherMap API.
 
 ```typescript
-const getJoke = defineTool(
+const getJoke = ai.defineTool(
   {
     name: "getJoke",
     description:
@@ -295,40 +286,36 @@ The tool above is a simple example of a tool that retrieves a joke about a speci
 Let's modify our generate method to use the `getJoke` tool by adding the following code to the `index.ts` file:
 ```typescript
 export const myFlow = onFlow(
+  ai,
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
     outputSchema: z.string(),
-    authPolicy: noAuth(), // Not requiring authentication, but you can change this. It is highly recommended to require authentication for production use cases.
+    authPolicy: noAuth(),
   },
   async (toProcess) => {
 
     const prompt =
     `Tell me a joke about ${toProcess.text}`;
 
-    const result = await generate({
-      model:  gpt4o,
+    const result = await ai.generate({
       prompt,
       tools: [getJoke]
     });
 
-    return result.text();
+    return result.text;
   },
 );
 ```
 
 The code above is using the `generate` function from Genkit to generate a joke about the input text using the GPT-4o model. The `generate` function takes the model, prompt, and tools as input and returns the generated text. In this case, we are passing the `getJoke` tool to the `generate` function to retrieve a joke about the input text.
 
-Make sure you update your imports to include the `defineTool` function:
+Make sure you update your imports:
 ```typescript
-import { configureGenkit } from "@genkit-ai/core";
 import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
-
-import * as z from "zod";
-import { firebase } from "@genkit-ai/firebase";
 import { gpt4o, openAI } from "genkitx-openai";
-import { dotprompt } from "@genkit-ai/dotprompt";
-import { defineTool, generate } from "@genkit-ai/ai";
+import { genkit, z } from "genkit";
+import { logger } from 'genkit/logging';
 ```
 
 Let's build our project by running the following command in the `functions` directory:
@@ -389,6 +376,7 @@ npm i -D --save @types/pdf-parse
 Let's create a flow that gets the path of the PDF file and returns the chunks of text by adding the following code to the `index.ts` file:
 ```typescript
 export const ingester = onFlow(
+  ai,
   {
     name: "ingester",
     inputSchema: z.string(),
@@ -401,11 +389,11 @@ export const ingester = onFlow(
     // Read the pdf.
     const pdfTxt = await run("extract-text", () => extractTextFromPdf(file));
     const chunkingConfig = {
-        minLength: 1000,
-        maxLength: 2000,
-        splitter: "paragrapah",
-        overlap: 100,
-        delimiters: "",
+      minLength: 1000,
+      maxLength: 2000,
+      splitter: "paragrapah",
+      overlap: 100,
+      delimiters: "",
     } as any;
     // Divide the pdf text into segments.
     const chunks = await run("chunk-it", async () =>
@@ -414,7 +402,7 @@ export const ingester = onFlow(
 
     // Convert chunks of text into documents to store in the index.
     const documents = chunks.map((text) => {
-      return Document.fromText(text, { file });
+      return Document.fromText(text, { filepath });
     });
 
   },
@@ -437,54 +425,41 @@ One thing that you can see is that we are using the `run` function to run the `e
 
 Make sure you update your imports to include the `run` function:
 ```typescript
-import { configureGenkit } from "@genkit-ai/core";
+import { genkit, run, z } from "genkit";
 import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
-
-import * as z from "zod";
-import { firebase } from "@genkit-ai/firebase";
 import { gpt4o, openAI } from "genkitx-openai";
-import { dotprompt } from "@genkit-ai/dotprompt";
-import { defineTool, generate } from "@genkit-ai/ai";
-
-import { Document } from "@genkit-ai/ai/retriever";
+import { Document } from 'genkit/retriever';
 import { chunk } from "llm-chunk";
-import { run } from "@genkit-ai/flow";
 import { readFile } from "fs/promises";
 import pdf from "pdf-parse";
 import * as path from "path";
+import { logger } from 'genkit/logging';
 ```
 
 This is how our index.ts file should look like:
 ```typescript
-import { configureGenkit } from "@genkit-ai/core";
+import { genkit, run, z } from "genkit";
 import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
-
-import * as z from "zod";
-import { firebase } from "@genkit-ai/firebase";
 import { gpt4o, openAI } from "genkitx-openai";
-import { dotprompt } from "@genkit-ai/dotprompt";
-import { defineTool, generate } from "@genkit-ai/ai";
-
-import { Document } from "@genkit-ai/ai/retriever";
+import { Document } from 'genkit/retriever';
 import { chunk } from "llm-chunk";
-import { run } from "@genkit-ai/flow";
 import { readFile } from "fs/promises";
 import pdf from "pdf-parse";
 import * as path from "path";
+import { logger } from 'genkit/logging';
 
-configureGenkit({
+const ai = genkit({
+  model: gpt4o,
   plugins: [
-    firebase(),
-    dotprompt(),
     openAI({
       apiKey: process.env.OPENAI_API_KEY!,
     }),
   ],
-  logLevel: "debug",
 });
-
+logger.setLogLevel('debug');
 
 export const ingester = onFlow(
+  ai,
   {
     name: "ingester",
     inputSchema: z.string(),
@@ -510,7 +485,7 @@ export const ingester = onFlow(
 
     // Convert chunks of text into documents to store in the index.
     const documents = chunks.map((text) => {
-      return Document.fromText(text, { file });
+      return Document.fromText(text, { filepath });
     });
 
   },
@@ -523,7 +498,7 @@ async function extractTextFromPdf(filePath: string) {
   return data.text;
 }
 
-const getJoke = defineTool(
+const getJoke = ai.defineTool(
   {
     name: "getJoke",
     description: "Get a randome joke about a specific topic",
@@ -540,6 +515,7 @@ const getJoke = defineTool(
 );
 
 export const myFlow = onFlow(
+  ai,
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
@@ -549,13 +525,12 @@ export const myFlow = onFlow(
   async (toProcess) => {
     const prompt = `Tell me a joke about ${toProcess.text}.`;
 
-    const result = await generate({
-      model: gpt4o,
+    const result = await ai.generate({
       prompt,
       tools: [getJoke],
     });
 
-    return result.text();
+    return result.text;
   },
 );
 ```
@@ -570,10 +545,9 @@ npm install @genkit-ai/dev-local-vectorstore
 
 Amazing! Let's initialize the local vector database by adding the following code to the `index.ts` file, it is like another plugin:
 ```typescript
-configureGenkit({
+const ai = genkit({
+  model: gpt4o,
   plugins: [
-    firebase(),
-    dotprompt(),
     openAI({
       apiKey: process.env.OPENAI_API_KEY!,
     }),
@@ -584,8 +558,8 @@ configureGenkit({
       },
     ]),
   ],
-  logLevel: "debug",
 });
+logger.setLogLevel('debug');
 ```
 
 In the code above, we are initializing the local vector database with the `devLocalVectorstore` plugin. The plugin takes an array of index configurations as input. Each index configuration contains the index name and the embedder model to use for embedding the text. For this workshop, we are creating an index called `jokes` with the `textEmbeddingAda002` embedder model from OpenAI.
@@ -598,6 +572,7 @@ export const jokeIndexer = devLocalIndexerRef("jokes");
 Finally, let's modify the `ingester` flow to index the documents by adding the following code to the `index.ts` file:
 ```typescript
 export const ingester = onFlow(
+  ai,
   {
     name: "ingester",
     inputSchema: z.string(),
@@ -623,11 +598,11 @@ export const ingester = onFlow(
 
     // Convert chunks of text into documents to store in the index.
     const documents = chunks.map((text) => {
-      return Document.fromText(text, { file });
+      return Document.fromText(text, { filepath });
     });
 
     // Add documents to the index.
-    await index({
+    await ai.index({
       indexer: jokeIndexer,
       documents,
     });
@@ -639,25 +614,20 @@ As you can see, we just added the `index` function to the `ingester` flow. The `
 
 Make sure you update your imports to include the `devLocalIndexerRef` and `index` functions:
 ```typescript
-import { configureGenkit } from "@genkit-ai/core";
+import { genkit, run, z } from "genkit";
 import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
-
-import * as z from "zod";
-import { firebase } from "@genkit-ai/firebase";
 import { gpt4o, openAI, textEmbeddingAda002 } from "genkitx-openai";
-import { dotprompt } from "@genkit-ai/dotprompt";
-import { defineTool, generate } from "@genkit-ai/ai";
+import { Document } from 'genkit/retriever';
 
 import {
   devLocalIndexerRef,
   devLocalVectorstore,
 } from "@genkit-ai/dev-local-vectorstore";
-import { Document, index } from "@genkit-ai/ai/retriever";
 import { chunk } from "llm-chunk";
-import { run } from "@genkit-ai/flow";
 import { readFile } from "fs/promises";
 import pdf from "pdf-parse";
 import * as path from "path";
+import { logger } from 'genkit/logging';
 ```
 
 Let's build our project by running the following command in the `functions` directory:
@@ -681,16 +651,17 @@ export const jokeRetriever = devLocalRetrieverRef("jokes");
 Perfect, let's go you our flow `myFlow`  and modify it to use the `jokeRetriever` by adding the following code to the `index.ts` file:
 ```typescript
 export const myFlow = onFlow(
+  ai,
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
     outputSchema: z.string(),
-    authPolicy: noAuth(), // Not requiring authentication, but you can change this. It is highly recommended to require authentication for production use cases.
+    authPolicy: noAuth(),
   },
   async (toProcess) => {
     const prompt = `Tell me a joke about ${toProcess.text}.`;
 
-    const docs = await retrieve({
+    const docs = await ai.retrieve({
       retriever: jokeRetriever,
       query: "Joke structure best practices",
       options: { k: 3 },
@@ -698,13 +669,12 @@ export const myFlow = onFlow(
 
     console.log(JSON.stringify(docs, null, 2));
 
-    const result = await generate({
-      model: gpt4o,
+    const result = await ai.generate({
       prompt,
       tools: [getJoke],
     });
 
-    return result.text();
+    return result.text;
   },
 );
 ```
@@ -714,6 +684,7 @@ The code above is modifying the `myFlow` flow to use the `jokeRetriever` to retr
 If you see the code above, we are not using the `docs` variable, let's add it to the `generate` function:
 ```typescript
 export const myFlow = onFlow(
+  ai,
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
@@ -723,7 +694,7 @@ export const myFlow = onFlow(
   async (toProcess) => {
     const prompt = `Tell me a joke about ${toProcess.text}. Create a joke structure that follows best practices and explain which ones you used.`;
 
-    const docs = await retrieve({
+    const docs = await ai.retrieve({
       retriever: jokeRetriever,
       query: "Joke structure best practices",
       options: { k: 3 },
@@ -731,14 +702,13 @@ export const myFlow = onFlow(
 
     console.log(JSON.stringify(docs, null, 2));
 
-    const result = await generate({
-      model: gpt4o,
+    const result = await ai.generate({
       prompt,
       tools: [getJoke],
-      context: docs,
+      docs,
     });
 
-    return result.text();
+    return result.text;
   },
 );
 ```
@@ -747,26 +717,21 @@ You can see it added the `context` parameter to the `generate` function. The `co
 
 Make sure you update your imports to include the `devLocalRetrieverRef` and `retrieve` functions:
 ```typescript
-import { configureGenkit } from "@genkit-ai/core";
+import { genkit, run, z } from "genkit";
 import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
-
-import * as z from "zod";
-import { firebase } from "@genkit-ai/firebase";
 import { gpt4o, openAI, textEmbeddingAda002 } from "genkitx-openai";
-import { dotprompt } from "@genkit-ai/dotprompt";
-import { defineTool, generate } from "@genkit-ai/ai";
+import { Document } from 'genkit/retriever';
 
 import {
   devLocalIndexerRef,
   devLocalRetrieverRef,
   devLocalVectorstore,
 } from "@genkit-ai/dev-local-vectorstore";
-import { Document, index, retrieve } from "@genkit-ai/ai/retriever";
 import { chunk } from "llm-chunk";
-import { run } from "@genkit-ai/flow";
 import { readFile } from "fs/promises";
 import pdf from "pdf-parse";
 import * as path from "path";
+import { logger } from 'genkit/logging';
 ```
 
 Let's build our project by running the following command in the `functions` directory:
@@ -794,36 +759,25 @@ Dotprompt is a powerful templating language that allows you to create dynamic pr
 
 It is very powerfuls allowing developers to separate the source code from the prompts, making it easier to manage and update the prompts without changing the source code.
 
-To use Dotprompt in your Genkit flow, you need to install the Dotprompt plugin by running the following command in the `functions` directory of your Firebase project:
-```bash
-npm i @genkit-ai/dotprompt
-```
+Dotprompt is a module included in Genkit flow, you do not need need to install it. You can use it right away:
 
-Once we have the Dotprompt plugin installed, we can import it in the `index.ts` file:
+
+We can specify where the dotprompt templates are located by adding the following code to the `index.ts` file:
 ```typescript
-import { configureGenkit } from "@genkit-ai/core";
-import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
-
-import * as z from "zod";
-import { firebase } from "@genkit-ai/firebase";
-import { gpt4o, openAI } from "genkitx-openai";
-import { generate } from "@genkit-ai/ai";
-import { dotprompt } from "@genkit-ai/dotprompt";
-```
-
-Then, we can initialize the Dotprompt plugin with:
-```typescript
-configureGenkit({
-  plugins: [firebase(), dotprompt(), openAI(
+const ai = genkit({
+  model: gpt4o,
+  promptDir: 'prompts',
+  plugins: [
+    openAI(
     {
       apiKey: process.env.OPENAI_API_KEY!,
     }
   )],
-  logLevel: "debug",
 });
+logger.setLogLevel('debug');
 ```
 
-Now, It is time to create the `prompts`  folder in the `functions` directory of your Firebase project. This folder will contain the Dotprompt templates for your Genkit flows. You can create a new Dotprompt template by adding a new file with the `.prompt` extension to the `prompts` folder. Let's create a new Dotprompt template called `joke.prompt` with the following content:
+Now, It is time to create the `prompts` folder in the `functions` directory of your Firebase project. This folder will contain the Dotprompt templates for your Genkit flows. You can create a new Dotprompt template by adding a new file with the `.prompt` extension to the `prompts` folder. Let's create a new Dotprompt template called `joke.prompt` with the following content:
 ```handlebars
 ---
 model: openai/gpt-4o
@@ -846,6 +800,7 @@ As you see above, the Dotprompt template defines the input and output schema for
 Let's modify our flow to use the Dotprompt template by adding the following code to the `index.ts` file:
 ```typescript
 export const myFlow = onFlow(
+  ai,
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
@@ -854,31 +809,18 @@ export const myFlow = onFlow(
   },
   async (toProcess) => {
 
-    const nluPrompt = promptRef("joke");
+    const nluPrompt = ai.prompt("joke");
 
-    const result = await nluPrompt.generate({
-      input: {
+    const result = await nluPrompt({
         text: toProcess.text,
-      },
     });
 
-    return result.output();
+    return result.text;
   },
 );
 ```
 
-In the code above, we are using the Genkit flow called `myFlow` that uses the `joke.prompt` Dotprompt template to generate a joke about the input text. We are using the `promptRef` function from Genkit to reference the Dotprompt template and the `generate` function to generate the response passing the input text.
-
-Make sure you update your imports to include the `promptRef` function:
-```typescript
-import { configureGenkit } from "@genkit-ai/core";
-import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
-
-import * as z from "zod";
-import { firebase } from "@genkit-ai/firebase";
-import { openAI } from "genkitx-openai";
-import { dotprompt, promptRef } from "@genkit-ai/dotprompt";
-```
+In the code above, we are using the Genkit flow called `myFlow` that uses the `joke.prompt` Dotprompt template to generate a joke about the input text. We are using the `prompt` function from Genkit to reference the Dotprompt template and to generate the response passing the input text.
 
 Let's build our project by running the following command in the `functions` directory:
 ```sh
@@ -949,6 +891,8 @@ If you want to continue learning about Genkit, I recommend you to:
 1. Connect to other LLMSs from other vendors like Google AI Studio, Google VErtex AI, Cohere, Groq, Azure, AWS Bedrock
 2. Contect to external vector Databases like Firstore, QDRant, Chroma, Pinecone.
 3. Create more complex flows with multiple tools and models.
+4. Create chatbots with memory
+
 
 ### Share
 If you found this workshop useful, please share it with your friends and colleagues. You can also star the [GitHub repository](https://github.com/xavidop/genkit-workshop)
