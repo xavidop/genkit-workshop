@@ -58,7 +58,7 @@ export const ingester = onFlow(
     const chunkingConfig = {
       minLength: 1000,
       maxLength: 2000,
-      splitter: "paragrapah",
+      splitter: "paragraph",
       overlap: 100,
       delimiters: "",
     } as any;
