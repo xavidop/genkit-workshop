@@ -12,7 +12,7 @@ Duration: 30
 
 Firebase Genkit is an open source framework from the Firebase team that allows you to build generative AI applications with ease. It provides a set of plugins and libraries that help you to connect to large language models, manage prompts, create retrieval-augmented generation (RAG) models and many more.
 
-In this workshop, you will learn how to use Genkit to build a simple generative AI application (Firebase function) that can answer questions about TBD. You will learn how to connect to a large language model, manage prompts, and talk to your PDF documents.
+In this workshop, you will learn how to use Genkit to build a simple generative AI application (Firebase function) that can auto-generate jokes based in best practices. You will learn how to connect to a large language model, manage prompts, and talk to your PDF documents.
 
 ### Setting Up the Development Environment
 
