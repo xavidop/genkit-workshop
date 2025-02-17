@@ -8,6 +8,5 @@ Feedback Link: https://github.com/xavidop/genkit-workshop
 ## Important Note
 Duration: 10
 ### Overview of Genkit
-![Firebase Genkit](assets/module1/dark_logo.png)
 
 This codelab has been moved [here](https://courses.xavidop.me/)
