@@ -94,16 +94,14 @@ To create a new Genkit flow, you will to modify the existing code of the `index.
 First, let's add the imports that we will need to create our Genkit flow:
 
 ```typescript
-import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
 import { genkit, z } from "genkit";
 import { logger } from 'genkit/logging';
 ```
 
 This project uses the following Node.js Packages:
-1. `@genkit-ai/firebase`: Genkit Firebase SDK to be able to use Genkit in Firebase Functions
-2. `genkit`: Genkit AI Core SDK
-3. `z`: A TypeScript-first schema declaration and validation library
-4. `genkit/logging`: Genkit logging library
+1. `genkit`: Genkit AI Core SDK
+2. `z`: A TypeScript-first schema declaration and validation library
+3. `genkit/logging`: Genkit logging library
 
 
 Perfect, let's intilize genkit in our project by adding the following code to the `index.ts` file:
@@ -120,18 +118,20 @@ This code initializes Genkit and sets the log level to debug. One fo the cool is
 
 You can now create a new Genkit flow by adding the following code to the `index.ts` file:
 ```typescript
-export const myFlow = onFlow(
-  ai,
+export const myFlow = ai.defineFlow(
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
     outputSchema: z.string(),
-    authPolicy: noAuth(),
   },
   async (toProcess) => {
     return toProcess.text;
   },
 );
+
+export const tellJoke = onCallGenkit({
+  authPolicy: () => true, // Allow all users to call this function. Not recommended for production.
+}, myFlow);
 ```
 In the code above we are creating a new Genkit flow called `myFlow` that takes a text input with the JSON format `{text: 'myText'}` and returns the same text as output.
 
@@ -142,7 +142,7 @@ npm run build
 
 After building the project, let's run the Firebase emulator suite and the Genkit developer console to test our Genkit flow. We should be able to call the `myFlow` flow with the input `{text: 'Hello World'}` and get the output `Hello World`:
 ```bash
-curl -X POST http://localhost:5001/<your-project-id>/<your-region>/myFlow -H "Content-Type: application/json" -d '{"data":{"text":"hi"}}'
+curl -X POST http://localhost:5001/<your-project-id>/<your-region>/tellJoke -H "Content-Type: application/json" -d '{"data":{"text":"hi"}}'
 ```
 
 You should get the following response:
@@ -170,7 +170,6 @@ npm install genkitx-openai
 
 Let's import the OpenAI plugin library:
 ```typescript
-import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
 import { openAI } from "genkitx-openai";
 import { genkit, z } from "genkit";
 import { logger } from 'genkit/logging';
@@ -191,13 +190,11 @@ logger.setLogLevel('debug');
 
 Now, we can create a new Genkit flow that connects to the GPT-4o model by adding the following code to the `index.ts` file:
 ```typescript
-export const myFlow = onFlow(
-  ai,
+export const myFlow = ai.defineFlow(
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
     outputSchema: z.string(),
-    authPolicy: noAuth(), // Not requiring authentication, but you can change this. It is highly recommended to require authentication for production use cases.
   },
   async (toProcess) => {
     const prompt =
@@ -213,13 +210,16 @@ export const myFlow = onFlow(
     return llmResponse.text;
   },
 );
+
+export const tellJoke = onCallGenkit({
+  authPolicy: () => true, // Allow all users to call this function. Not recommended for production.
+}, myFlow);
 ```
 
 In the code above, we are creating a re-using the Genkit flow called `myFlow` that takes a text input with the JSON format `{text: 'myText'}` and generates a joke about the input text using the GPT-4o model. We are using the `generate` function from Genkit to generate the response. The `generate` function takes the model, prompt, and configuration as input and returns the generated text.
 
 To use the `generate` function and `gpt4o`, we need to import it them:
 ```typescript
-import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
 import { gpt4o, openAI } from "genkitx-openai";
 import { genkit, z } from "genkit";
 import { logger } from 'genkit/logging';
@@ -232,7 +232,7 @@ npm run build
 
 Once built, let's run the Firebase emulator suite and the Genkit developer console to test our Genkit flow. We should be able to call the `myFlow` flow with the input `{text: 'dog'}` and get a joke about dogs:
 ```bash
-curl -X POST http://localhost:5001/<your-project-id>/<your-region>/myFlow -H "Content-Type: application/json" -d '{"data":{"text":"dog"}}'
+curl -X POST http://localhost:5001/<your-project-id>/<your-region>/tellJoke -H "Content-Type: application/json" -d '{"data":{"text":"dog"}}'
 ```
 
 You should get a joke about dogs as the response:
@@ -285,13 +285,11 @@ The tool above is a simple example of a tool that retrieves a joke about a speci
 
 Let's modify our generate method to use the `getJoke` tool by adding the following code to the `index.ts` file:
 ```typescript
-export const myFlow = onFlow(
-  ai,
+export const myFlow = ai.defineFlow(
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
     outputSchema: z.string(),
-    authPolicy: noAuth(),
   },
   async (toProcess) => {
 
@@ -306,13 +304,16 @@ export const myFlow = onFlow(
     return result.text;
   },
 );
+
+export const tellJoke = onCallGenkit({
+  authPolicy: () => true, // Allow all users to call this function. Not recommended for production.
+}, myFlow);
 ```
 
 The code above is using the `generate` function from Genkit to generate a joke about the input text using the GPT-4o model. The `generate` function takes the model, prompt, and tools as input and returns the generated text. In this case, we are passing the `getJoke` tool to the `generate` function to retrieve a joke about the input text.
 
 Make sure you update your imports:
 ```typescript
-import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
 import { gpt4o, openAI } from "genkitx-openai";
 import { genkit, z } from "genkit";
 import { logger } from 'genkit/logging';
@@ -325,7 +326,7 @@ npm run build
 
 Once built, let's run the Firebase emulator suite and the Genkit developer console to test our Genkit flow. We should be able to call the `myFlow` flow with the input `{text: 'dog'}` and get a joke about dogs:
 ```bash
-curl -X POST http://localhost:5001/<your-project-id>/<your-region>/myFlow -H "Content-Type: application/json" -d '{"data":{"text":"dog"}}'
+curl -X POST http://localhost:5001/<your-project-id>/<your-region>/tellJoke -H "Content-Type: application/json" -d '{"data":{"text":"dog"}}'
 ```
 
 You should get a joke about dogs as the response:
@@ -375,19 +376,17 @@ npm i -D --save @types/pdf-parse
 
 Let's create a flow that gets the path of the PDF file and returns the chunks of text by adding the following code to the `index.ts` file:
 ```typescript
-export const ingester = onFlow(
-  ai,
+export const ingester = ai.defineFlow(
   {
     name: "ingester",
     inputSchema: z.string(),
     outputSchema: z.void(),
-    authPolicy: noAuth(), // Not requiring authentication, but you can change this. It is highly recommended to require authentication for production use cases.
   },
   async (filepath: string) => {
     const file = path.resolve(filepath);
 
     // Read the pdf.
-    const pdfTxt = await run("extract-text", () => extractTextFromPdf(file));
+    const pdfTxt = await ai.run("extract-text", () => extractTextFromPdf(file));
     const chunkingConfig = {
       minLength: 1000,
       maxLength: 2000,
@@ -396,17 +395,21 @@ export const ingester = onFlow(
       delimiters: "",
     } as any;
     // Divide the pdf text into segments.
-    const chunks = await run("chunk-it", async () =>
+    const chunks = await ai.run("chunk-it", async () =>
       chunk(pdfTxt, chunkingConfig),
     );
 
     // Convert chunks of text into documents to store in the index.
-    const documents = chunks.map((text) => {
+    const documents = chunks.map((text: string) => {
       return Document.fromText(text, { filepath });
     });
 
   },
 );
+
+export const ingesterFlow = onCallGenkit({
+  authPolicy: () => true, // Allow all users to call this function. Not recommended for production.
+}, ingester);
 ```
 
 You will need this auxiliar function called `extractTextFromPdf` that reads the PDF file and extracts the text:
@@ -425,8 +428,7 @@ One thing that you can see is that we are using the `run` function to run the `e
 
 Make sure you update your imports to include the `run` function:
 ```typescript
-import { genkit, run, z } from "genkit";
-import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
+import { genkit, z } from "genkit";
 import { gpt4o, openAI } from "genkitx-openai";
 import { Document } from 'genkit/retriever';
 import { chunk } from "llm-chunk";
@@ -438,8 +440,7 @@ import { logger } from 'genkit/logging';
 
 This is how our index.ts file should look like:
 ```typescript
-import { genkit, run, z } from "genkit";
-import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
+import { genkit, z } from "genkit";
 import { gpt4o, openAI } from "genkitx-openai";
 import { Document } from 'genkit/retriever';
 import { chunk } from "llm-chunk";
@@ -458,19 +459,17 @@ const ai = genkit({
 });
 logger.setLogLevel('debug');
 
-export const ingester = onFlow(
-  ai,
+export const ingester = ai.defineFlow(
   {
     name: "ingester",
     inputSchema: z.string(),
     outputSchema: z.void(),
-    authPolicy: noAuth(), // Not requiring authentication, but you can change this. It is highly recommended to require authentication for production use cases.
   },
   async (filepath: string) => {
     const file = path.resolve(filepath);
 
     // Read the pdf.
-    const pdfTxt = await run("extract-text", () => extractTextFromPdf(file));
+    const pdfTxt = await ai.run("extract-text", () => extractTextFromPdf(file));
     const chunkingConfig = {
       minLength: 1000,
       maxLength: 2000,
@@ -479,17 +478,21 @@ export const ingester = onFlow(
       delimiters: "",
     } as any;
     // Divide the pdf text into segments.
-    const chunks = await run("chunk-it", async () =>
+    const chunks = await ai.run("chunk-it", async () =>
       chunk(pdfTxt, chunkingConfig),
     );
 
     // Convert chunks of text into documents to store in the index.
-    const documents = chunks.map((text) => {
+    const documents = chunks.map((text: string) => {
       return Document.fromText(text, { filepath });
     });
 
   },
 );
+
+export const ingesterFlow = onCallGenkit({
+  authPolicy: () => true, // Allow all users to call this function. Not recommended for production.
+}, ingester);
 
 async function extractTextFromPdf(filePath: string) {
   const pdfFile = path.resolve(filePath);
@@ -514,13 +517,11 @@ const getJoke = ai.defineTool(
   },
 );
 
-export const myFlow = onFlow(
-  ai,
+export const myFlow = ai.defineFlow(
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
     outputSchema: z.string(),
-    authPolicy: noAuth(), // Not requiring authentication, but you can change this. It is highly recommended to require authentication for production use cases.
   },
   async (toProcess) => {
     const prompt = `Tell me a joke about ${toProcess.text}.`;
@@ -533,6 +534,10 @@ export const myFlow = onFlow(
     return result.text;
   },
 );
+
+export const tellJoke = onCallGenkit({
+  authPolicy: () => true, // Allow all users to call this function. Not recommended for production.
+}, myFlow);
 ```
 
 Let's go back to the image about RAG and see how we can implement the indexer and retriever:
@@ -571,19 +576,17 @@ export const jokeIndexer = devLocalIndexerRef("jokes");
 
 Finally, let's modify the `ingester` flow to index the documents by adding the following code to the `index.ts` file:
 ```typescript
-export const ingester = onFlow(
-  ai,
+export const ingester = ai.defineFlow(
   {
     name: "ingester",
     inputSchema: z.string(),
     outputSchema: z.void(),
-    authPolicy: noAuth(), // Not requiring authentication, but you can change this. It is highly recommended to require authentication for production use cases.
   },
   async (filepath: string) => {
     const file = path.resolve(filepath);
 
     // Read the pdf.
-    const pdfTxt = await run("extract-text", () => extractTextFromPdf(file));
+    const pdfTxt = await ai.run("extract-text", () => extractTextFromPdf(file));
     const chunkingConfig = {
       minLength: 1000,
       maxLength: 2000,
@@ -592,12 +595,12 @@ export const ingester = onFlow(
       delimiters: "",
     } as any;
     // Divide the pdf text into segments.
-    const chunks = await run("chunk-it", async () =>
+    const chunks = await ai.run("chunk-it", async () =>
       chunk(pdfTxt, chunkingConfig),
     );
 
     // Convert chunks of text into documents to store in the index.
-    const documents = chunks.map((text) => {
+    const documents = chunks.map((text: string) => {
       return Document.fromText(text, { filepath });
     });
 
@@ -608,14 +611,17 @@ export const ingester = onFlow(
     });
   },
 );
+
+export const ingesterFlow = onCallGenkit({
+  authPolicy: () => true, // Allow all users to call this function. Not recommended for production.
+}, ingester);
 ```
 
 As you can see, we just added the `index` function to the `ingester` flow. The `index` function takes the indexer and documents as input and indexes the documents in the index.
 
 Make sure you update your imports to include the `devLocalIndexerRef` and `index` functions:
 ```typescript
-import { genkit, run, z } from "genkit";
-import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
+import { genkit, z } from "genkit";
 import { gpt4o, openAI, textEmbeddingAda002 } from "genkitx-openai";
 import { Document } from 'genkit/retriever';
 
@@ -650,13 +656,11 @@ export const jokeRetriever = devLocalRetrieverRef("jokes");
 
 Perfect, let's go you our flow `myFlow`  and modify it to use the `jokeRetriever` by adding the following code to the `index.ts` file:
 ```typescript
-export const myFlow = onFlow(
-  ai,
+export const myFlow = ai.defineFlow(
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
     outputSchema: z.string(),
-    authPolicy: noAuth(),
   },
   async (toProcess) => {
     const prompt = `Tell me a joke about ${toProcess.text}.`;
@@ -677,19 +681,21 @@ export const myFlow = onFlow(
     return result.text;
   },
 );
+
+export const tellJoke = onCallGenkit({
+  authPolicy: () => true, // Allow all users to call this function. Not recommended for production.
+}, myFlow);
 ```
 
 The code above is modifying the `myFlow` flow to use the `jokeRetriever` to retrieve information about jokes structure from the index. The `retrieve` function takes the `retriever`, `query`, and `options` as input and returns the retrieved documents.
 
 If you see the code above, we are not using the `docs` variable, let's add it to the `generate` function:
 ```typescript
-export const myFlow = onFlow(
-  ai,
+export const myFlow = ai.defineFlow(
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
     outputSchema: z.string(),
-    authPolicy: noAuth(), // Not requiring authentication, but you can change this. It is highly recommended to require authentication for production use cases.
   },
   async (toProcess) => {
     const prompt = `Tell me a joke about ${toProcess.text}. Create a joke structure that follows best practices and explain which ones you used.`;
@@ -711,14 +717,17 @@ export const myFlow = onFlow(
     return result.text;
   },
 );
+
+export const tellJoke = onCallGenkit({
+  authPolicy: () => true, // Allow all users to call this function. Not recommended for production.
+}, myFlow);
 ```
 
 You can see it added the `context` parameter to the `generate` function. The `context` parameter takes the retrieved documents as input and provides them to the model as context. We have also modified the prompt to test that the context is being used.
 
 Make sure you update your imports to include the `devLocalRetrieverRef` and `retrieve` functions:
 ```typescript
-import { genkit, run, z } from "genkit";
-import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
+import { genkit, z } from "genkit";
 import { gpt4o, openAI, textEmbeddingAda002 } from "genkitx-openai";
 import { Document } from 'genkit/retriever';
 
@@ -799,13 +808,11 @@ As you see above, the Dotprompt template defines the input and output schema for
 
 Let's modify our flow to use the Dotprompt template by adding the following code to the `index.ts` file:
 ```typescript
-export const myFlow = onFlow(
-  ai,
+export const myFlow = ai.defineFlow(
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
     outputSchema: z.string(),
-    authPolicy: noAuth(), // Not requiring authentication, but you can change this. It is highly recommended to require authentication for production use cases.
   },
   async (toProcess) => {
 
@@ -818,6 +825,10 @@ export const myFlow = onFlow(
     return result.text;
   },
 );
+
+export const tellJoke = onCallGenkit({
+  authPolicy: () => true, // Allow all users to call this function. Not recommended for production.
+}, myFlow);
 ```
 
 In the code above, we are using the Genkit flow called `myFlow` that uses the `joke.prompt` Dotprompt template to generate a joke about the input text. We are using the `prompt` function from Genkit to reference the Dotprompt template and to generate the response passing the input text.
@@ -829,7 +840,7 @@ npm run build
 
 Once built, let's run the Firebase emulator suite and the Genkit developer console to test our Genkit flow. We should be able to call the `myFlow` flow with the input `{text: 'dog'}` and get a joke about dogs:
 ```bash
-curl -X POST http://localhost:5001/<your-project-id>/<your-region>/myFlow -H "Content-Type: application/json" -d '{"data":{"text":"dog"}}'
+curl -X POST http://localhost:5001/<your-project-id>/<your-region>/tellJoke -H "Content-Type: application/json" -d '{"data":{"text":"dog"}}'
 ```
 
 You should get a joke about dogs as the response:
@@ -888,10 +899,11 @@ Please provide feedback on this workshop by filling creating an issue in the [Gi
 
 ### Continue Learning
 If you want to continue learning about Genkit, I recommend you to:
-1. Connect to other LLMSs from other vendors like Google AI Studio, Google VErtex AI, Cohere, Groq, Azure, AWS Bedrock
-2. Contect to external vector Databases like Firstore, QDRant, Chroma, Pinecone.
-3. Create more complex flows with multiple tools and models.
-4. Create chatbots with memory
+1. Connect to other LLMSs from other vendors like Google AI Studio, Google Vertex AI, Cohere, Groq, Azure, AWS Bedrock
+2. Check Firebase Telemetry and Analytics to monitor the performance of your Genkit flows.
+3. Contect to external vector Databases like Firstore, QDRant, Chroma, Pinecone.
+4. Create more complex flows with multiple tools and models.
+5. Create chatbots with memory
 
 
 ### Share

@@ -7,7 +7,8 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
+import { onCallGenkit } from "firebase-functions/https";
+
 import { gpt4o, openAI } from "genkitx-openai";
 import { genkit, z } from "genkit";
 import { logger } from 'genkit/logging';
@@ -23,15 +24,13 @@ const ai = genkit({
 });
 logger.setLogLevel('debug');
 
-export const myFlow = onFlow(
-  ai,
+export const myFlow = ai.defineFlow(
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
     outputSchema: z.string(),
-    authPolicy: noAuth(), // Not requiring authentication, but you can change this. It is highly recommended to require authentication for production use cases.
   },
-  async (toProcess) => {
+  async (toProcess: { text: any; }) => {
     const prompt =
     `Tell me a joke about ${toProcess.text}`;
 
@@ -45,3 +44,7 @@ export const myFlow = onFlow(
     return llmResponse.text;
   },
 );
+
+export const tellJoke = onCallGenkit({
+  authPolicy: () => true, // Allow all users to call this function. Not recommended for production.
+}, myFlow);

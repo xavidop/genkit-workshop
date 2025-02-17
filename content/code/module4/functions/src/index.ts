@@ -7,8 +7,7 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import { genkit, run, z } from "genkit";
-import { onFlow, noAuth } from "@genkit-ai/firebase/functions";
+import { genkit, z } from "genkit";
 import { gpt4o, openAI, textEmbeddingAda002 } from "genkitx-openai";
 import { Document } from 'genkit/retriever';
 
@@ -22,6 +21,7 @@ import { readFile } from "fs/promises";
 import pdf from "pdf-parse";
 import * as path from "path";
 import { logger } from 'genkit/logging';
+import { onCallGenkit } from "firebase-functions/https";
 
 const ai = genkit({
   model: gpt4o,
@@ -42,19 +42,17 @@ logger.setLogLevel('debug');
 export const jokeIndexer = devLocalIndexerRef("jokes");
 export const jokeRetriever = devLocalRetrieverRef('jokes');
 
-export const ingester = onFlow(
-  ai,
+export const ingester = ai.defineFlow(
   {
     name: "ingester",
     inputSchema: z.string(),
     outputSchema: z.void(),
-    authPolicy: noAuth(), // Not requiring authentication, but you can change this. It is highly recommended to require authentication for production use cases.
   },
   async (filepath: string) => {
     const file = path.resolve(filepath);
 
     // Read the pdf.
-    const pdfTxt = await run("extract-text", () => extractTextFromPdf(file));
+    const pdfTxt = await ai.run("extract-text", () => extractTextFromPdf(file));
     const chunkingConfig = {
       minLength: 1000,
       maxLength: 2000,
@@ -63,12 +61,12 @@ export const ingester = onFlow(
       delimiters: "",
     } as any;
     // Divide the pdf text into segments.
-    const chunks = await run("chunk-it", async () =>
+    const chunks = await ai.run("chunk-it", async () =>
       chunk(pdfTxt, chunkingConfig),
     );
 
     // Convert chunks of text into documents to store in the index.
-    const documents = chunks.map((text) => {
+    const documents = chunks.map((text: string) => {
       return Document.fromText(text, { filepath });
     });
 
@@ -79,6 +77,10 @@ export const ingester = onFlow(
     });
   },
 );
+
+export const ingesterFlow = onCallGenkit({
+  authPolicy: () => true, // Allow all users to call this function. Not recommended for production.
+}, ingester);
 
 async function extractTextFromPdf(filePath: string) {
   const pdfFile = path.resolve(filePath);
@@ -103,13 +105,11 @@ const getJoke = ai.defineTool(
   },
 );
 
-export const myFlow = onFlow(
-  ai,
+export const myFlow = ai.defineFlow(
   {
     name: "myFlow",
     inputSchema: z.object({ text: z.string() }),
     outputSchema: z.string(),
-    authPolicy: noAuth(), // Not requiring authentication, but you can change this. It is highly recommended to require authentication for production use cases.
   },
   async (toProcess) => {
     const prompt = `Tell me a joke about ${toProcess.text}. Create a joke structure that follows best practices and explain which ones you used.`;
@@ -131,3 +131,7 @@ export const myFlow = onFlow(
     return result.text;
   },
 );
+
+export const tellJoke = onCallGenkit({
+  authPolicy: () => true, // Allow all users to call this function. Not recommended for production.
+}, myFlow);
